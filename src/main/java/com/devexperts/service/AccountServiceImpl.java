@@ -2,9 +2,10 @@ package com.devexperts.service;
 
 import com.devexperts.account.Account;
 import com.devexperts.account.AccountKey;
+import com.devexperts.exception.AccountNotFoundException;
+import com.devexperts.exception.InsufficientBalanceException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import org.springframework.stereotype.Service;
 
@@ -20,10 +21,10 @@ public class AccountServiceImpl implements AccountService {
 
   @Override
   public void createAccount(Account account) {
-    long accountId = account.getAccountKey().getAccountId();
-    if (Objects.nonNull(getAccount(accountId))) {
+    try {
+      getAccount(account.getAccountKey().getAccountId());
       throw new IllegalArgumentException();
-    } else {
+    } catch (AccountNotFoundException e) {
       accounts.add(account);
     }
   }
@@ -32,10 +33,10 @@ public class AccountServiceImpl implements AccountService {
   public Account getAccount(long id) {
     //There is the possibility to change the accounts variable type to HashMap, the performance is
     //way faster than ArrayList but occupies more space in memory.
-    return accounts.stream().parallel()
+    return accounts.stream()
         .filter(account -> account.getAccountKey().equals(AccountKey.valueOf(id)))
         .findAny()
-        .orElse(null);
+        .orElseThrow(() -> new AccountNotFoundException(id));
 
   }
 
@@ -50,21 +51,17 @@ public class AccountServiceImpl implements AccountService {
   }
 
   private void asyncTransfer(Account source, Account target, double amount) {
-    CompletableFuture<Account> futureSource = CompletableFuture
-        .supplyAsync(() -> getAccount(source.getAccountKey().getAccountId()));
-    CompletableFuture<Account> futureTarget = CompletableFuture
-        .supplyAsync(() -> getAccount(target.getAccountKey().getAccountId()));
+    Account finalSource = getAccount(source.getAccountKey().getAccountId());
+    Account finalTarget = getAccount(target.getAccountKey().getAccountId());
 
-    CompletableFuture.allOf(futureSource, futureTarget).thenApplyAsync(aVoid -> {
-      try {
-        if (futureSource.get().getBalance() >= amount) {
-          futureSource.get().setBalance(futureSource.get().getBalance() - amount);
-          futureTarget.get().setBalance(futureTarget.get().getBalance() + amount);
-        }
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-      return aVoid;
-    });
+    if (finalSource.getBalance() >= amount) {
+      CompletableFuture.runAsync(() -> {
+        finalSource.setBalance(finalSource.getBalance() - amount);
+        finalTarget.setBalance(finalTarget.getBalance() + amount);
+      });
+    } else {
+      throw new InsufficientBalanceException();
+    }
   }
+
 }

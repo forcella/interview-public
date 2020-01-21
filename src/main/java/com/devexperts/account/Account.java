@@ -1,35 +1,42 @@
 package com.devexperts.account;
 
 public class Account {
-    private final AccountKey accountKey;
-    private final String firstName;
-    private final String lastName;
-    private Double balance;
 
-    public Account(AccountKey accountKey, String firstName, String lastName, Double balance) {
-        this.accountKey = accountKey;
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.balance = balance;
-    }
+  private final AccountKey accountKey;
+  private final String firstName;
+  private final String lastName;
+  private Double balance;
 
-    public AccountKey getAccountKey() {
-        return accountKey;
-    }
+  public Account(AccountKey accountKey, String firstName, String lastName, Double balance) {
+    this.accountKey = accountKey;
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.balance = balance;
+  }
 
-    public String getFirstName() {
-        return firstName;
-    }
+  public Account(long id) {
+    this.accountKey = AccountKey.valueOf(id);
+    this.firstName = "";
+    this.lastName = "";
+  }
 
-    public String getLastName() {
-        return lastName;
-    }
+  public AccountKey getAccountKey() {
+    return accountKey;
+  }
 
-    public Double getBalance() {
-        return balance;
-    }
+  public String getFirstName() {
+    return firstName;
+  }
 
-    public void setBalance(Double balance) {
-        this.balance = balance;
-    }
+  public String getLastName() {
+    return lastName;
+  }
+
+  public Double getBalance() {
+    return balance;
+  }
+
+  public void setBalance(Double balance) {
+    this.balance = balance;
+  }
 }

@@ -6,12 +6,13 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasProperty;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.devexperts.account.Account;
 import com.devexperts.account.AccountKey;
+import com.devexperts.exception.AccountNotFoundException;
+import com.devexperts.exception.InsufficientBalanceException;
 import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,9 +47,7 @@ public class AccountServiceTest {
   @Test
   public void shouldThrowErrorWhenAccountIsAlreadyCreated() {
     Account account = new Account(AccountKey.valueOf(1L), "Error", "Doe", 1000D);
-    assertThrows(IllegalArgumentException.class, () -> {
-      service.createAccount(account);
-    });
+    assertThrows(IllegalArgumentException.class, () -> service.createAccount(account));
   }
 
   @Test
@@ -66,9 +65,8 @@ public class AccountServiceTest {
   }
 
   @Test
-  public void shouldGetNullForNonExistingAccount() {
-    Account account = service.getAccount(3L);
-    assertNull(account);
+  public void shouldThrowAccountNotFoundForNonExistingAccount() {
+    assertThrows(AccountNotFoundException.class, () -> service.getAccount(3L));
   }
 
   @Test
@@ -96,5 +94,16 @@ public class AccountServiceTest {
       assertEquals(source.getBalance(), sourceBalance);
     });
 
+  }
+
+  @Test
+  public void shouldThrowsInsufficientBalanceExceptionWhenSourceBalanceIsLessThenRequiredAmount() {
+    Account target = service.getAccount(1L);
+    Account source = service.getAccount(4L);
+    double amount = 2000D;
+    CompletableFuture.runAsync(() -> {
+      assertThrows(InsufficientBalanceException.class,
+          () -> service.transfer(source, target, amount));
+    });
   }
 }
