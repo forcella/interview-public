@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.devexperts.account.Account;
 import com.devexperts.account.AccountKey;
+import java.util.concurrent.CompletableFuture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -88,9 +89,12 @@ public class AccountServiceTest {
     double targetBalance = target.getBalance() + amount;
     double sourceBalance = source.getBalance() - amount;
 
-    service.transfer(source, target, amount);
+    CompletableFuture.runAsync(() -> {
+      service.transfer(source, target, amount);
 
-    assertEquals(target.getBalance(), targetBalance);
-    assertEquals(source.getBalance(), sourceBalance);
+      assertEquals(target.getBalance(), targetBalance);
+      assertEquals(source.getBalance(), sourceBalance);
+    });
+
   }
 }

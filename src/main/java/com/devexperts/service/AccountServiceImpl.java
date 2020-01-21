@@ -5,6 +5,7 @@ import com.devexperts.account.AccountKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -40,12 +41,7 @@ public class AccountServiceImpl implements AccountService {
 
   @Override
   public void transfer(Account source, Account target, double amount) {
-    source = getAccount(source.getAccountKey().getAccountId());
-    target = getAccount(target.getAccountKey().getAccountId());
-    if (source.getBalance() >= amount) {
-      source.setBalance(source.getBalance() - amount);
-      target.setBalance(target.getBalance() + amount);
-    }
+    asyncTransfer(source, target, amount);
   }
 
 
@@ -53,4 +49,22 @@ public class AccountServiceImpl implements AccountService {
     return accounts.size();
   }
 
+  private void asyncTransfer(Account source, Account target, double amount) {
+    CompletableFuture<Account> futureSource = CompletableFuture
+        .supplyAsync(() -> getAccount(source.getAccountKey().getAccountId()));
+    CompletableFuture<Account> futureTarget = CompletableFuture
+        .supplyAsync(() -> getAccount(target.getAccountKey().getAccountId()));
+
+    CompletableFuture.allOf(futureSource, futureTarget).thenApplyAsync(aVoid -> {
+      try {
+        if (futureSource.get().getBalance() >= amount) {
+          futureSource.get().setBalance(futureSource.get().getBalance() - amount);
+          futureTarget.get().setBalance(futureTarget.get().getBalance() + amount);
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+      return aVoid;
+    });
+  }
 }
