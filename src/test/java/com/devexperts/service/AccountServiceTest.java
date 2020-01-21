@@ -23,18 +23,20 @@ public class AccountServiceTest {
   @BeforeEach
   public void setup() {
     service = new AccountServiceImpl();
-    Account account = new Account(AccountKey.valueOf(1L), "Maria", "Doe", 1000D);
-    service.createAccount(account);
+    Account account1 = new Account(AccountKey.valueOf(1L), "Maria", "Doe", 1000D);
+    Account account4 = new Account(AccountKey.valueOf(4L), "Mike", "Second", 1100D);
+    service.createAccount(account1);
+    service.createAccount(account4);
   }
 
   @Test
   public void shouldCreateNewAccount() {
     Account account = new Account(AccountKey.valueOf(2L), "John", "Doe", 1000D);
     int totalOfAccountsBeforeInsert = service.getTotalOfAccounts();
-    int expectBeforeInsert = 1;
+    int expectBeforeInsert = 2;
     service.createAccount(account);
     int totalOfAccountsAfterInsert = service.getTotalOfAccounts();
-    int expectAfterInsert = 2;
+    int expectAfterInsert = 3;
 
     assertEquals(expectBeforeInsert, totalOfAccountsBeforeInsert);
     assertEquals(expectAfterInsert, totalOfAccountsAfterInsert);
@@ -76,5 +78,19 @@ public class AccountServiceTest {
     assertTrue(shouldHaveMoreThanZeroAccountsBeforeClear);
     service.clear();
     assertEquals(valueExpectedAfterClearAccounts, service.getTotalOfAccounts());
+  }
+
+  @Test
+  public void shouldTransferBalanceFromSourceAccountToTarget() {
+    Account target = service.getAccount(1L);
+    Account source = service.getAccount(4L);
+    double amount = 299.51D;
+    double targetBalance = target.getBalance() + amount;
+    double sourceBalance = source.getBalance() - amount;
+
+    service.transfer(source, target, amount);
+
+    assertEquals(target.getBalance(), targetBalance);
+    assertEquals(source.getBalance(), sourceBalance);
   }
 }
